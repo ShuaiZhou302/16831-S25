@@ -117,7 +117,7 @@ class RL_Trainer(object):
                 initial_expertdata,
                 collect_policy,
                 self.params['batch_size']
-            )  # HW1: implement this function below
+            )  # HW1: implement this function below (X)
             paths, envsteps_this_batch, train_video_paths = training_returns
             self.total_envsteps += envsteps_this_batch
 
@@ -167,22 +167,40 @@ class RL_Trainer(object):
         # TODO decide whether to load training data or use the current policy to collect more data
         # HINT: depending on if it's the first iteration or not, decide whether to either
         # (1) load the data. In this case you can directly return as follows
-        # ``` return loaded_paths, 0, None ```
+        # ``` return loaded_paths, 0, None ```   (Done)
 
         # (2) collect `self.params['batch_size']` transitions
-
-        # TODO collect `batch_size` samples to be used for training
+        
+        if itr == 0:
+            if load_initial_expertdata != None:
+                # Load the expert data from file
+                print(f"\nLoading expert data from {load_initial_expertdata}")
+                with open(load_initial_expertdata, 'rb') as f:
+                    loaded_paths = pickle.load(f)
+                
+                # No environment steps taken this batch (just loading data)
+                envsteps_this_batch = 0
+                
+                # Return loaded expert data (no training videos for expert data)
+                return loaded_paths, envsteps_this_batch, None
+            else:
+                # Report error if no initial expert data is provided
+                raise ValueError("No initial expert data provided for the first iteration.")    
+        
+        # its the dagger part, so we collect data using the current policy
+        # TODO collect `batch_size` samples to be used for training (X)
         # HINT1: use sample_trajectories from utils
         # HINT2: you want each of these collected rollouts to be of length self.params['ep_len']
         print("\nCollecting data to be used for training...")
-        paths, envsteps_this_batch = TODO
+        paths, envsteps_this_batch = utils.sample_trajectories(self.env, collect_policy, batch_size,
+                                                               self.params['ep_len'], render=self.params['render'], render_mode=self.params['render_mode'])
 
         # collect more rollouts with the same policy, to be saved as videos in tensorboard
         # note: here, we collect MAX_NVIDEO rollouts, each of length MAX_VIDEO_LEN
         train_video_paths = None
         if self.log_video:
             print('\nCollecting train rollouts to be used for saving videos...')
-            ## TODO look in utils and implement sample_n_trajectories
+            ## TODO look in utils and implement sample_n_trajectories (X)
             train_video_paths = utils.sample_n_trajectories(self.env, collect_policy, MAX_NVIDEO, self.MAX_VIDEO_LEN, True)
 
         return paths, envsteps_this_batch, train_video_paths
@@ -208,9 +226,14 @@ class RL_Trainer(object):
     def do_relabel_with_expert(self, expert_policy, paths):
         print("\nRelabelling collected observations with labels from an expert policy...")
 
-        # TODO relabel collected obsevations (from our policy) with labels from an expert policy
+        # TODO relabel collected obsevations (from our policy) with labels from an expert policy [X]
         # HINT: query the policy (using the get_action function) with paths[i]["observation"]
         # and replace paths[i]["action"] with these expert labels
+        # 这里的专家不再是之前的那个数据里的专家了 而是用expert——policy 另外一个pkl生成的神经网络来动态生成这个ob下该怎么做
+        for i in range(len(paths)):   
+            ob = paths[i]["observation"]
+            ac = expert_policy.get_action(ob)
+            paths[i]["action"] = ac
 
         return paths
 
