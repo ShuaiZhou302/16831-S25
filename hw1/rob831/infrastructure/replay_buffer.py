@@ -24,6 +24,10 @@ class ReplayBuffer(object):
             return 0
 
     def add_rollouts(self, paths, concat_rew=True):
+        
+        # 人话就是 加上一组数据 同时确保缓冲区的数据都在maxsize之内 
+        # 同时 保留最近的max_size条数据 如果之前的加上最近的超出了 max_size
+        # 则将之前的一部分或全部去掉 以确保缓冲区的大小不超过max_size
 
         # add new rollouts into our list of rollouts
         for path in paths:
@@ -77,7 +81,21 @@ class ReplayBuffer(object):
         ## HINT 2: return corresponding data points from each array (i.e., not different indices from each array)
         ## HINT 3: look at the sample_recent_data function below
 
-        return TODO, TODO, TODO, TODO, TODO
+        # total sizes
+        total_size = self.obs.shape[0]
+        
+        # handle the problem if batch_size is larger than total_size
+        actual_batch_size = min(batch_size, total_size)
+        random_indices = np.random.permutation(total_size)[:actual_batch_size]
+        
+        # return the corresponding data points from each array
+        return (
+            self.obs[random_indices],
+            self.acs[random_indices], 
+            self.rews[random_indices],
+            self.next_obs[random_indices],
+            self.terminals[random_indices],
+        )
 
 
     def sample_recent_data(self, batch_size=1):

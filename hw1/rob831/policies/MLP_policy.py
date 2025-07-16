@@ -80,8 +80,15 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         else:
             observation = obs[None]
 
-        # TODO return the action that the policy prescribes
-        raise NotImplementedError
+        # TODO return the action that the policy prescribes [X]
+        observation = ptu.from_numpy(observation)
+        
+        # Use forward() to get distribution, then sample from it
+        action_dist = self.forward(observation)
+        action = action_dist.sample()
+        
+        # Convert back to numpy
+        return ptu.to_numpy(action)
 
     # update/train this policy
     def update(self, observations, actions, **kwargs):
@@ -93,7 +100,14 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     # return more flexible objects, such as a
     # `torch.distributions.Distribution` object. It's up to you!
     def forward(self, observation: torch.FloatTensor) -> Any:
-        raise NotImplementedError
+        if self.discrete:
+            # For discrete actions, return categorical distribution
+            return distributions.Categorical(logits=self.logits_na(observation))
+        else:
+            # For continuous actions, return normal distribution
+            mean = self.mean_net(observation)
+            sigma = self.logstd.exp().expand_as(mean)
+            return distributions.Normal(mean, sigma)
 
 
 #####################################################
@@ -108,8 +122,21 @@ class MLPPolicySL(MLPPolicy):
             self, observations, actions,
             adv_n=None, acs_labels_na=None, qvals=None
     ):
-        # TODO: update the policy and return the loss
-        loss = TODO
+        # TODO: update the policy and return the loss [X]
+        observations = ptu.from_numpy(observations)
+        actions = ptu.from_numpy(actions)
+        
+        # Get predicted action distribution and sample from it
+        predicted_action_dist = self.forward(observations)
+        predicted_actions = predicted_action_dist.rsample()  # rsample preserves gradients
+        
+        # Compute MSE loss between predicted and actual actions
+        loss = self.loss(predicted_actions, actions)
+        
+        # Perform gradient update
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
 
         return {
             # You can add extra logging information here, but keep this line
