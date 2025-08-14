@@ -65,8 +65,35 @@ class ReplayBuffer(object):
     ########################################
 
     def sample_random_data(self, batch_size):
-        # TODO: get this from hw1
-        raise NotImplementedError
+        # TODO: get this from hw1 X
+        assert (
+                self.obs.shape[0]
+                == self.acs.shape[0]
+                == self.rews.shape[0]
+                == self.next_obs.shape[0]
+                == self.terminals.shape[0]
+        )
+
+        ## TODO return batch_size number of random entries from each of the 5 component arrays above [OK]
+        ## HINT 1: use np.random.permutation to sample random indices
+        ## HINT 2: return corresponding data points from each array (i.e., not different indices from each array)
+        ## HINT 3: look at the sample_recent_data function below
+
+        # total sizes
+        total_size = self.obs.shape[0]
+        
+        # handle the problem if batch_size is larger than total_size
+        actual_batch_size = min(batch_size, total_size)
+        random_indices = np.random.permutation(total_size)[:actual_batch_size]
+        
+        # return the corresponding data points from each array
+        return (
+            self.obs[random_indices],
+            self.acs[random_indices], 
+            self.rews[random_indices],
+            self.next_obs[random_indices],
+            self.terminals[random_indices],
+        )
 
     def sample_recent_data(self, batch_size=1, concat_rew=True):
 
