@@ -74,17 +74,13 @@ class PGAgent(BaseAgent):
         # Estimate Q^{pi}(s_t, a_t) by the total discounted reward summed over entire trajectory
         # HINT3: q_values should be a 1D numpy array where the indices correspond to the same
         # ordering as observations, actions, etc.
-        q_values = []
         if not self.reward_to_go:
-            #use the whole traj for each timestep
-            for traj_rewards in rewards_list:
-                q_values.append(self._discounted_return(traj_rewards))
+            q_values = np.concatenate([self._discounted_return(rewards) for rewards in rewards_list])
 
         # Case 2: reward-to-go PG
         # Estimate Q^{pi}(s_t, a_t) by the discounted sum of rewards starting from t
         else:
-            for traj_rewards in rewards_list:
-                q_values.append(self._discounted_cumsum(traj_rewards))
+            q_values = np.concatenate([self._discounted_cumsum(rewards) for rewards in rewards_list])
 
 
         return q_values  # return an array
@@ -131,12 +127,11 @@ class PGAgent(BaseAgent):
                         ## GAE formula
                         
                     if terminals[i]:
-                        next_advantage = 0
-                        delta_t = rewards[i] + 0 - values[i]
+                        delta = rewards[i] - values[i]
+                        advantages[i] = delta
                     else:
-                        next_advantage = advantages[i + 1]
-                        delta_t = rewards[i] + self.gamma * values[i + 1] - values[i]
-                    advantages[i] = delta_t + self.gamma * self.gae_lambda * next_advantage
+                        delta = rewards[i] + self.gamma * values[i+1] - values[i]                        
+                        advantages[i] = delta + self.gamma * self.gae_lambda * advantages[i+1]
                 # remove dummy advantage
                 advantages = advantages[:-1]
 
