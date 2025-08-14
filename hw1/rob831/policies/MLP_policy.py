@@ -124,14 +124,16 @@ class MLPPolicySL(MLPPolicy):
     ):
         # TODO: update the policy and return the loss [X]
         observations = ptu.from_numpy(observations)
-        actions = ptu.from_numpy(actions)
-        
         # Get predicted action distribution and sample from it
         predicted_action_dist = self.forward(observations)
-        predicted_actions = predicted_action_dist.rsample()  # rsample preserves gradients
-        
-        # Compute MSE loss between predicted and actual actions
-        loss = self.loss(predicted_actions, actions)
+        actions = ptu.from_numpy(actions)
+        if self.discrete:
+            log_prob = predicted_action_dist.log_prob(actions)
+            loss = -log_prob.mean()
+        else:
+            predicted_actions = predicted_action_dist.rsample()  # rsample preserves gradients
+            # Compute MSE loss between predicted and actual actions
+            loss = self.loss(predicted_actions, actions)
         
         # Perform gradient update
         self.optimizer.zero_grad()
