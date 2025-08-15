@@ -73,3 +73,7 @@ venv.bak/
 # Temporary files
 *.tmp
 *~
+
+
+# Ignore all second-level data folders
+*/data/
